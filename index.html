@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendario de Comidas</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    h1, h2 {
+      color: #333;
+      text-align: center;
+    }
+    .buttons-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 16px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #357ae8;
+    }
+    #save-button {
+      background-color: #34a853;
+    }
+    #save-button:hover {
+      background-color: #2b8c45;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      max-width: 95%;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      /* Bordes más visibles */
+      border: 3px solid #666;
+      padding: 12px;
+      text-align: left;
+      white-space: nowrap;
+      min-width: 100px;
+    }
+    th {
+      background-color: #f0f0f0;
+      color: #555;
+      font-weight: bold;
+    }
+    /* Estilos para la celda activa */
+    td[contenteditable="true"]:focus,
+    .selected-cell {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.7);
+    }
+    #status-message {
+      margin-top: 10px;
+      font-style: italic;
+      color: #777;
+      text-align: center;
+    }
+  </style>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <h1>Calendario de Comidas</h1>
+
+  <div class="buttons-container">
+    <button id="login">Iniciar sesión con Google</button>
+    <button id="logout" style="display:none">Cerrar sesión</button>
+    <button id="save-button" style="display:none">Guardar Cambios</button>
+  </div>
+
+  <div id="contenido" class="container" style="display:none">
+    <h2>Datos del mes</h2>
+    <div id="resultado"></div>
+    <div id="status-message"></div>
+  </div>
+
+  <script>
+    const CLIENT_ID = "688826321509-sb3n6gt3mpusmbvorsgdnketbbb1a25b.apps.googleusercontent.com";
+    // La clave de API ha sido eliminada por seguridad. La autenticación se maneja con el token de OAuth.
+    const SPREADSHEET_ID = "11_kq2qaKl2f2awWh0ea1IUelHmqUKDyyU6apbZvWbyo";
+    const RANGE = "Setembre25!A1:D91";
+    const SCOPE = "https://www.googleapis.com/auth/spreadsheets";
+
+    let token = null;
+
+    gapi.load("client", async () => {
+      console.log("✅ gapi.client cargado");
+      await gapi.client.init({
+        // La clave de API ya no es necesaria aquí.
+        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+      });
+      console.log("✅ gapi.client inicializado");
+    });
+
+    function login() {
+      console.log("🔑 Iniciando login...");
+      google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPE,
+        callback: (resp) => {
+          console.log("✅ Token recibido:", resp);
+          token = resp.access_token;
+          gapi.client.setToken({ access_token: token });
+
+          document.getElementById("login").style.display = "none";
+          document.getElementById("logout").style.display = "block";
+          document.getElementById("save-button").style.display = "block";
+          document.getElementById("contenido").style.display = "block";
+
+          leerDatos();
+        }
+      }).requestAccessToken();
+    }
+
+    function logout() {
+      console.log("🚪 Logout");
+      token = null;
+      document.getElementById("login").style.display = "block";
+      document.getElementById("logout").style.display = "none";
+      document.getElementById("save-button").style.display = "none";
+      document.getElementById("contenido").style.display = "none";
+      document.getElementById("resultado").innerHTML = "";
+      document.getElementById("status-message").innerHTML = "";
+    }
+
+    async function leerDatos() {
+      document.getElementById("status-message").innerHTML = "Cargando datos...";
+      console.log("📖 Leyendo datos de la hoja...");
+      try {
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: RANGE
+        });
+        console.log("✅ Respuesta de Sheets:", response);
+
+        const filas = response.result.values || [];
+        if (filas.length === 0) {
+          document.getElementById("resultado").innerHTML = "<p>No hay datos</p>";
+          document.getElementById("status-message").innerHTML = "";
+          return;
+        }
+
+        let tabla = "<table><thead><tr>";
+        const encabezados = filas[0];
+        encabezados.forEach(encabezado => {
+          tabla += `<th>${encabezado || ""}</th>`;
+        });
+        tabla += "</tr></thead><tbody>";
+
+        for (let i = 1; i < filas.length; i++) {
+          const fila = filas[i];
+          tabla += "<tr>";
+          fila.forEach((celda, j) => {
+            const editable = (j > 0) ? 'contenteditable="true"' : '';
+            tabla += `<td ${editable}>${celda || ""}</td>`;
+          });
+          tabla += "</tr>";
+        }
+
+        tabla += "</tbody></table>";
+        document.getElementById("resultado").innerHTML = tabla;
+        document.getElementById("status-message").innerHTML = "Datos cargados. Haz clic o usa la tecla 'Tab' para editar.";
+        
+        // Listener para el resaltado de celdas al hacer clic
+        const tableElement = document.querySelector("#resultado table");
+        tableElement.addEventListener('click', (event) => {
+          const target = event.target;
+          if (target.tagName === 'TD' || target.tagName === 'TH') {
+            const previousSelected = document.querySelector('.selected-cell');
+            if (previousSelected) {
+              previousSelected.classList.remove('selected-cell');
+            }
+            target.classList.add('selected-cell');
+          }
+        });
+
+        // Nuevo listener para la navegación con la tecla Tab
+        tableElement.addEventListener('keydown', (event) => {
+          if (event.key === 'Tab') {
+            event.preventDefault();
+            const celdasEditables = Array.from(document.querySelectorAll('td[contenteditable="true"]'));
+            const celdaActual = document.activeElement;
+            const currentIndex = celdasEditables.indexOf(celdaActual);
+
+            let nextIndex;
+            if (event.shiftKey) {
+              // Shift+Tab (navegar hacia atrás)
+              nextIndex = (currentIndex > 0) ? currentIndex - 1 : celdasEditables.length - 1;
+            } else {
+              // Tab (navegar hacia adelante)
+              nextIndex = (currentIndex < celdasEditables.length - 1) ? currentIndex + 1 : 0;
+            }
+
+            celdasEditables[nextIndex].focus();
+
+            // Quitar el resaltado de la celda anterior y añadirlo a la nueva
+            const previousSelected = document.querySelector('.selected-cell');
+            if (previousSelected) {
+              previousSelected.classList.remove('selected-cell');
+            }
+            celdasEditables[nextIndex].classList.add('selected-cell');
+          }
+        });
+
+      } catch (e) {
+        console.error("❌ Error leyendo datos:", e);
+        document.getElementById("status-message").innerHTML = "<p>Error al leer datos. Revisa la consola para más detalles.</p>";
+      }
+    }
+
+    async function guardarDatos() {
+      document.getElementById("status-message").innerHTML = "Guardando cambios...";
+      console.log("💾 Guardando datos en la hoja...");
+
+      try {
+        const tabla = document.querySelector("#resultado table");
+        const filas = tabla.querySelectorAll("tbody tr");
+        const nuevosDatos = [];
+
+        filas.forEach(fila => {
+          const celdas = fila.querySelectorAll("td");
+          const nuevaFila = [];
+          celdas.forEach(celda => {
+            nuevaFila.push(celda.innerText);
+          });
+          nuevosDatos.push(nuevaFila);
+        });
+
+        const response = await gapi.client.sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `Setembre25!A2:D${nuevosDatos.length + 1}`,
+          valueInputOption: "USER_ENTERED",
+          resource: {
+            values: nuevosDatos
+          }
+        });
+
+        console.log("✅ Datos guardados:", response);
+        document.getElementById("status-message").innerHTML = "✅ Cambios guardados con éxito.";
+      } catch (e) {
+        console.error("❌ Error guardando datos:", e);
+        document.getElementById("status-message").innerHTML = "<p>Error al guardar. Revisa la consola para más detalles.</p>";
+      }
+    }
+
+    document.getElementById("login").onclick = login;
+    document.getElementById("logout").onclick = logout;
+    document.getElementById("save-button").onclick = guardarDatos;
+  </script>
+</body>
+</html>
+
+
+
