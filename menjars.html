@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Llista de Menjars</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 20px;
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    .add-section, .tools {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    #food-input, #search-input {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    .btn {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    .btn:hover { background-color: #0056b3; }
+    #food-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+    #food-list li {
+      padding: 12px;
+      background-color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+    #food-list li:hover { background-color: #f2f8ff; }
+    .food-text { flex-grow: 1; }
+    .btn-group button {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 8px;
+      font-size: 14px;
+      transition: opacity 0.3s;
+    }
+    .btn-group button:hover { opacity: 0.8; }
+    .edit-btn { background-color: #ffc107; color: #333; }
+    .delete-btn { background-color: #dc3545; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Llista de Menjars 🍲</h2>
+    
+    <!-- Barra per afegir menjars -->
+    <div class="add-section">
+      <input type="text" id="food-input" placeholder="Afegeix o modifica un plat...">
+      <button class="btn" onclick="addFood()">Afegeix</button>
+    </div>
+
+    <!-- Barra d'eines: Cerca i ordenar -->
+    <div class="tools">
+      <input type="text" id="search-input" placeholder="Cerca plats...">
+      <button class="btn" onclick="sortFoods()">Ordena A-Z</button>
+    </div>
+
+    <ul id="food-list"></ul>
+  </div>
+
+  <script>
+    let foodData = [
+    "Alberginies a la parmesana",
+            "Albondigues",
+            "Amanida alubias,alcachofas,sardinas",
+            "Amanida, boniato, tomaquets secs i alubuies",
+            "Amanida,aguacate,enciam,patanaga",
+            "Amanida,alberginia,bròquil i bacallà fumat",
+            "Amanida,alubies,berros ,toma. i ventresca",
+            "Amanida,api,perejil i fruits secs i llimona",
+            "Amanida,arroç ,cigrons, passes,orej albaricoques",
+            "Amanida,arroç ,pebrot, tonyina i ous",
+            "Amanida,arroç xino",
+            "Amanida,arroç, tonyina i vegetals",
+            "Amanida,arroç,cigrons,aguacate,raban",
+            "Amanida,bacalla amb taronja",
+            "Amanida,brocoli,aguacate i ou",
+            "Amanida,brocoli,bacon",
+            "Amanida,brocoli,maduixa,aguacate,Kale,llimona",
+            "Amanida,brocoli,tomaquet sec,formatge,pinyons",
+            "Amanida,carbassa,tomaquet,escarxofes, ous i bacalla",
+            "Amanida,carbasso,tom,maduixes,aguacate,carbassa",
+            "Amanida,cigrons",
+            "Amanida,cigrons amb pebrots escalibats,tonyina,ceba,ou dur",
+            "Amanida,cigrons,espinacs,tomaquet,ceba tendre,pebrot verd",
+            "Amanida,cigrons,llegums,nous,tomquets,ous cuits",
+            "Amanida,cigrons,pinya,enciam",
+            "Amanida,cigrons,tonyina,ceba morada,mostaza dijon,sal,pebre,patata i aguacate",
+            "Amanida,coliflor,pepino,maiz,tomaquet,pebre ,sal",
+            "Amanida,enciam",
+            "Amanida,enciam,arroç,pebrots",
+            "Amanida,endivies i aguacate",
+            "Amanida,espinacs,maduixa,aguacate,nous,vingare,sal,pebre i oli",
+            "Amanida,espinacs,taronja,poma i datis",
+            "Amanida,foei,codony,nous",
+            "Amanida,humus ametller",
+            "Amanida,kale,esparrecs,ametlles i poma",
+            "Amanida,llenties,arroç,puerro,tomaquet,pastanaga",
+            "Amanida,llenties,arroç,taperes,poma verda",
+            "Amanida,llenties,esparrecs,aguacate i pistatxos al pesto",
+            "Amanida,llenties,pebrots,pastanaga,pepino",
+            "Amanida,maduixes,espinacs i taronja",
+            "Amanida,melo,menta",
+            "Amanida,meló,síndria,ruca,formatge fresc,pernil ibèric i pinyons",
+            "Amanida,mongeta blanca,ceba i taperes",
+            "Amanida,mongeta cuita,tomaquet,olives,pepino",
+            "Amanida,mongeta verda,repollo morado,patates forn,rabano",
+            "Amanida,mongetes tendres,bacalla esqueixat",
+            "Amanida,mozarella i tomaquet",
+            "Amanida,pasta",
+            "Amanida,pasta,formatge i pesto",
+            "Amanida,pasta,tomaquet,oliva negra,ceba morada,albahaca,pepino,oli",
+            "Amanida,pastanaga,pepino,arroç,pepinillo,tomaquets,aguacate,pinya",
+            "Amanida,patata,ceba,pebrot escalibat,ou dur",
+            "Amanida,patata,frankfurt,ou i poma",
+            "Amanida,patata,ou i pastanaga",
+            "Amanida,patates a la mostassa",
+            "Amanida,patates,carbassa,remolatxa i quinoa",
+            "Amanida,patates,mongetes verdes,repollo morado,rabanos,perejil,lima",
+            "Amanida,pebrot,setes i pistachos",
+            "Amanida,pebrot.",
+            "Amanida,pollastre,coliflor,cilantro,ceba,suc llimona,sal,pebre,oli",
+            "Amanida,pollastre,mango i enciam",
+            "Amanida,quinoa,pollastre,tomaquets,nous,formatge",
+            "Amanida,quinoa,raim i poma",
+            "Amanida,sindria,aquacate,pepino,perejil,menta,llimona",
+            "Amanida,tempeh,espinacs,quinoa,taronja,anacardos",
+            "Amanida,tomaquets,germinats,olives,semilles",
+            "Arroç, amb verdures",
+            "Arroç,3 delicias",
+            "Arroç,a la cubana",
+            "Arroç,al forn",
+            "Arroç,amb bacalla",
+            "Arroç,amb brocoli i ous",
+            "Arroç,amb calamar",
+            "Arroç,amb rap",
+            "Arroç,amb xistorra",
+            "Arroç,ametller",
+            "Arroç,ànec a la taronja",
+            "Arroç,basmati,api i brou",
+            "Arroç,basmati,brocoli,pebrot ver,pastanga,pernil",
+            "Arroç,calamar i pebrot vermell",
+            "Arroç,caldos de peix",
+            "Arroç,cantones ametller",
+            "Arroç,curry ametller",
+            "Arroç,espinacs i tomaquets secs",
+            "Arroç,gambes vilanova La Fabrica",
+            "Arroç,llenties i vegetals",
+            "Arroç,marroquí",
+            "Arroç,mongetes verdes",
+            "Arroç,negre",
+            "Arroç,saltejat amb verdures i truita",
+            "Bacalla,a la planxa",
+            "Bacalla,ametller",
+            "Bacalla,brasa amb mongeta verda",
+            "Bacalla,de quaresma",
+            "Bacallà,amb all i oli",
+            "Bacalla,amb citrics i cherrys",
+            "Bacalla,amb coliflor",
+            "Bacalla,amb pebrot i alls",
+            "Bacalla,amb salsa de tomaquet",
+            "Barbacoa",
+            "Bledes,guisadas",
+            "Bledes,ou fregit",
+            "Boniato,amb ous",
+            "Boniato,llegums i advocat gratinats",
+            "Boniato,xampis,cigros i arroç",
+            "Boquerons",
+            "Botifarra,planxa",
+            "Brocoli,patates i formatge",
+            "Buñuelos Bacalla",
+            "Burrito",
+            "Caballa a la planxa",
+            "Caballa fregida amb patata i tom.",
+            "Canelons",
+            "Cap de llom",
+            "Carn adobada",
+            "Carn arrebossada",
+            "Carn picada i formatge",
+            "Carn picada, ou, pebrot",
+            "Carn vegana",
+            "Cassoleta de carbasso",
+            "Chuletón carne madurada",
+            "Churrasco",
+            "Cigrons,alberginia i carbasso",
+            "Cigrons,bacalla i xoriço",
+            "Cigrons,coliflor al curry",
+            "Cigrons,espinacs i ous",
+            "Cigrons,espinacs i pernil",
+            "Cigrons,xistorra",
+            "Cigros,espinacs,carbassa,caldo verd",
+            "Cochinita pibil",
+            "Col de bruselas al forn",
+            "Col escabetx amb ceba cop de puny",
+            "Coliflor al forn",
+            "Coliflor,alberginies i llenties",
+            "Coliflor,llenties i all",
+            "Cols brusseles i vinagreta",
+            "Conill",
+            "Costillar",
+            "Crema cigrons",
+            "Crema verdures",
+            "Croquetes",
+            "Empanadilles",
+            "Empanadilles sirena samosas",
+            "Empedrat",
+            "Ensaladilla",
+            "Entrecot",
+            "Entrepà butifarra",
+            "Entrepa llom amb formatge",
+            "Entrepa llom i formatge",
+            "Entrepa tonyina",
+            "Entrepa tonyina i pebrot",
+            "Espaguetis,carbonara",
+            "Esparrecs amb pernil gratinats",
+            "Espinacs amb alls",
+            "Espinacs amb cigrons",
+            "Espinacs Ametller",
+            "Esqueixada de bacalla",
+            "Estofat rovallons,carxofes i esparrecs",
+            "Fajitas",
+            "Farcellets espinacs",
+            "Fideos yakisova",
+            "Fideua",
+            "Fideua Casa Ametller",
+            "Fideua Mercadona",
+            "Filet de coliflor al forn",
+            "Finura iberica",
+            "Focaccia",
+            "Frankfurt",
+            "Gazpatxo",
+            "Hamburguesa",
+            "Hamburguesa pollastre cryspi",
+            "Hamburguesa Pollastre Mercadona",
+            "Hamburguesa vegana",
+            "Heura",
+            "Humus",
+            "Lacon",
+            "Lasanya carn",
+            "Lasanya Espinac Ametller",
+            "Lasanya Salmon i Brocoli Mercadona",
+            "Lasanya verdures",
+            "Llenties,espaguettis pesto",
+            "Llenties,mercadona",
+            "Llenties,xoriç",
+            "Llom",
+            "Llom adobat",
+            "Mac and chesse",
+            "Macarrons amb sobrassada",
+            "Macarrons amb tonyina",
+            "Macarrons amb tonyina i tomaquet",
+            "Macarrons amb xoriço",
+            "Magret",
+            "Mazorca maiz",
+            "Mini rollitos carne sirena",
+            "Mongeta blanca",
+            "Mongeta blanca,pebrot,pastanaga,olives negres",
+            "Mongeta verda vapor",
+            "Mongeta verda,cigrons, arroç i pebre",
+            "Mongeta verda,tomaquets secs i pinyons",
+            "Noodle amb verdures",
+            "Noodle carbassó.patata i ous",
+            "Noodle,arroç amb verduras",
+            "Nyokis",
+            "Orada forn",
+            "Ou bullit",
+            "Pa amb botifarra i mozzarella grat.",
+            "Pa amb embutit",
+            "Paella de verduras",
+            "Pasta",
+            "Pasta al pesto",
+            "Pasta amb falç pesto",
+            "Pasta amb ou mollet",
+            "Pasta amb sardina fumada",
+            "Pasta Ametller",
+            "Pasta caserece Ametller",
+            "Pasta int. tom. secos y piñones",
+            "Pasta int. verdures",
+            "Pasta,casarece Pesto Ametller",
+            "Pasta,ceps, carxofes i trufa",
+            "Pastis d'arroç omplert de carn",
+            "Pastis de Broquoli",
+            "Pastís de patata",
+            "Pastis de tonyina",
+            "Patata olot",
+            "Patatas a lo pobre",
+            "Patates al forn",
+            "Patates fregides",
+            "Patates Olot",
+            "Patates viudes",
+            "Pavo planxa",
+            "Pebrots piquillo",
+            "Pessols",
+            "Peus de porc",
+            "Pinxos",
+            "Pisto",
+            "Pizza",
+            "Pizza,boniatos bolets i broquoli",
+            "Pizzeta",
+            "Poke Bawl,arroç,brocoli i ou",
+            "Poke Bawl,arroç,cigrons,pastamagues",
+            "Poke Bawl,arroç,enciam i mango",
+            "Poke Bawl,arroç,enciam,mango,ou dur,pernil",
+            "Poke Bawl,arroç,salmo,aguacate,datils,eniam",
+            "Poke Bawl,arroç,salmon i aguacate",
+            "Poke Bawl,arroç,tempeh,mongetes verdes",
+            "Poke Bawl,enciam,arroç,aguacate,mini biscuits",
+            "Poke Bawl,heura",
+            "Poke Bawl,ou dur",
+            "Poke Bawl,pollastre",
+            "Poke Bawl,salmo",
+            "Poke Bawl,soja texturitzada",
+            "Poke Bawl,tonyia i quinoa",
+            "Poke Bawl,tonyina",
+            "Pollastre a l'ast",
+            "Pollastre a la llimona amb esparrecs",
+            "Pollastre a la taronja",
+            "Pollastre al curry amb llet de coco",
+            "Pollastre al limó i esparrecs",
+            "Pollastre al pesto i tomaquet",
+            "Pollastre arrebossat",
+            "Pollastre contracuixa",
+            "Pollastre cuixa planxa",
+            "Pollastre farcit al forn",
+            "Pollastre planxa",
+            "Pop a la brasa",
+            "Presa de porc",
+            "Presa iberica",
+            "Provolone",
+            "Quesadilla de bolets",
+            "Raviolis ametller",
+            "Risoto Ceps Ametller",
+            "Risoto Esparrecs verds",
+            "Rollitos Primavera",
+            "Salmo al forn",
+            "Salmo al forn amb mel i llimona",
+            "Salmo al forn amb patates",
+            "Salmo i verdures",
+            "Salpicon de llegums",
+            "Salsitxes",
+            "Salsitxes a la cervessa amb patates",
+            "Salsitxes al forn i verdures",
+            "Saltat escarxofes ametller",
+            "Saltejat de coliflor",
+            "Saltejat de verdures",
+            "Saltejat d'arroç, llenties i carbassa",
+            "Sardines",
+            "Secret Iberic",
+            "Sepia a la planxa",
+            "Sepia a la planxa amb all i julivert",
+            "Sèpia estofada",
+            "Solomillo",
+            "Sopa",
+            "Sopa de Pollastre amb fideus i verdures",
+            "Sopa de verdures, fideos i cigrons",
+            "Sopa melo",
+            "Sopa verdures , llenties i semola",
+            "Sopa verdures i fideos",
+            "Spaguetti integral amb Pollastre al curry",
+            "Spaguettis , ous i cansalada",
+            "Spaguettis carbonara",
+            "Spaguettis picants",
+            "Taco soja texturitzada",
+            "Tacos mexicans",
+            "Tallarines bolonyesa",
+            "Tallarines xinesos amb verdures",
+            "Tempeh",
+            "Tomaquet amb formatge",
+            "Tonyina a la planxa amb all i julivert",
+            "Torrades de figues,maduixes,formatge,pernil,ruca,festucs",
+            "Torrades de sobrassada amb mel",
+            "Torrades amb pebrot escalibat",
+            "Tortellini finas hierbas sirena",
+            "Tortellini Ricota Ametller",
+            "Tortes amb Aguacate, pernil salat, ou fregit",
+            "Trinxat Cerdenya",
+            "Truita alls tendres, sobrassada i maó",
+            "Truita carbasso",
+            "Truita de Bledes",
+            "Truita de patata i bacalla",
+            "Truita farcida de pa amb tomaquet",
+            "Truita francesa",
+            "Truita gratinada",
+            "Truita patates",
+            "Truita pernil",
+            "Verdures",
+            "Vinagretes",
+            "Xato",
+            "Xurrasco",
+            "Yakisova Mercadona",
+            "Yakisova verduras la sirena"
+    ];
+
+    const foodList = document.getElementById('food-list');
+    const foodInput = document.getElementById('food-input');
+    const searchInput = document.getElementById('search-input');
+    let editIndex = -1;
+
+    // Renderitzar amb filtre de cerca
+    function renderList() {
+      const searchTerm = searchInput.value.toLowerCase();
+      foodList.innerHTML = '';
+      foodData
+        .filter(food => food.toLowerCase().includes(searchTerm))
+        .forEach((food, index) => {
+          const li = document.createElement('li');
+          const textSpan = document.createElement('span');
+          textSpan.className = 'food-text';
+          textSpan.textContent = food;
+          li.appendChild(textSpan);
+
+          const btnGroup = document.createElement('div');
+          btnGroup.className = 'btn-group';
+
+          const editButton = document.createElement('button');
+          editButton.className = 'edit-btn';
+          editButton.textContent = 'Modifica';
+          editButton.onclick = () => startEdit(index);
+          btnGroup.appendChild(editButton);
+
+          const deleteButton = document.createElement('button');
+          deleteButton.className = 'delete-btn';
+          deleteButton.textContent = 'Esborra';
+          deleteButton.onclick = () => deleteFood(index);
+          btnGroup.appendChild(deleteButton);
+
+          li.appendChild(btnGroup);
+          foodList.appendChild(li);
+        });
+    }
+
+    // Afegir/Modificar
+    function addFood() {
+      const foodText = foodInput.value.trim();
+      if (foodText !== "") {
+        if (editIndex === -1) {
+          foodData.unshift(foodText);
+        } else {
+          foodData[editIndex] = foodText;
+          editIndex = -1;
+          document.querySelector('.btn').textContent = 'Afegeix';
+        }
+        foodInput.value = "";
+        renderList();
+      }
+    }
+
+    function deleteFood(index) {
+      if (confirm(`Esborrar "${foodData[index]}"?`)) {
+        foodData.splice(index, 1);
+        renderList();
+      }
+    }
+
+    function startEdit(index) {
+      foodInput.value = foodData[index];
+      editIndex = index;
+      document.querySelector('.btn').textContent = 'Guarda Canvis';
+      foodInput.focus();
+    }
+
+    // Ordenar alfabèticament
+    function sortFoods() {
+      foodData.sort((a, b) => a.localeCompare(b, 'ca'));
+      renderList();
+    }
+
+    // Event per Enter
+    foodInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') addFood();
+    });
+
+    // Cercador en temps real
+    searchInput.addEventListener('input', renderList);
+
+    window.onload = renderList;
+  </script>
+</body>
+</html>
+
